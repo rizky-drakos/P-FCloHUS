@@ -168,14 +168,20 @@ void dfs(
                     }
                 }
             }
-            if (extensionLRU >= MIN_UTILITY && extensionSupp >= MIN_SUPP) newI[item.first] = item.second;
+            // if (extensionLRU >= MIN_UTILITY && extensionSupp >= MIN_SUPP) newI[item.first] = item.second;
+            if (extensionLRU >= MIN_UTILITY && extensionSupp >= MIN_SUPP) {
+                newI[item.first] = item.second;
+                Pattern extendedPattern = construct_i_ext(pattern, item.second, sequences);
+                newIList[item.first] = extendedPattern;
+                if (extendedPattern.SE == pattern.SE) do_s_ext = false;                
+            }
         }
     }
-    for (auto item : newI) {
-        Pattern extendedPattern = construct_i_ext(pattern, item.second, sequences);
-        newIList[item.first] = extendedPattern;
-        if (extendedPattern.SE == pattern.SE) do_s_ext = false;
-    }
+    // for (auto item : newI) {
+    //     Pattern extendedPattern = construct_i_ext(pattern, item.second, sequences);
+    //     newIList[item.first] = extendedPattern;
+    //     if (extendedPattern.SE == pattern.SE) do_s_ext = false;
+    // }
     if (do_s_ext) {
         for (auto item : S) {
             float extensionLRU = 0;
@@ -194,10 +200,19 @@ void dfs(
         }
         for (auto item : newS) {
             Pattern extendedPattern = construct_s_ext(pattern, item.second, sequences);
-            dfs(extendedPattern, newS, newS, MIN_SUPP, MIN_UTILITY, sequences, FCHUPatterns);
+            #pragma omp task untied shared(newS, sequences, FCHUPatterns) firstprivate(extendedPattern)
+            {
+                dfs(extendedPattern, newS, newS, MIN_SUPP, MIN_UTILITY, sequences, FCHUPatterns);
+            }
+        // #pragma omp taskwait
         }
     } else newS = S;
-    for (auto extendedPattern : newIList) dfs(extendedPattern.second, newI, newS, MIN_SUPP, MIN_UTILITY, sequences, FCHUPatterns);
+    for (auto extendedPattern : newIList) 
+        #pragma omp task untied shared(newI, newS, sequences, FCHUPatterns) firstprivate(extendedPattern)
+        {
+            dfs(extendedPattern.second, newI, newS, MIN_SUPP, MIN_UTILITY, sequences, FCHUPatterns);
+        }
+    #pragma omp taskwait
 }
 
 int main(int argvc, char** argv) {
@@ -225,13 +240,14 @@ int main(int argvc, char** argv) {
 
     #pragma omp parallel default(none) shared(sidulItems, FCHUPatterns, updatedSequences)
     {
-        #pragma omp single nowait
+        #pragma omp single
         {
             for (auto pattern : sidulItems)
                 #pragma omp task untied default(none) shared(FCHUPatterns, sidulItems, updatedSequences) firstprivate(pattern)
                 {
                     dfs(pattern.second, sidulItems, sidulItems, MIN_SUPP, MIN_UTILITY, updatedSequences, FCHUPatterns);
                 }
+            #pragma omp taskwait
         }
     }
 

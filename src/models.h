@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include <memory>
 
 class Item {
     public:
@@ -15,7 +16,7 @@ class Sequence {
     public:
         unsigned int size;
         float utility;
-        std::vector<Item> items;
+        std::vector<std::shared_ptr<Item>> items;
 
         Sequence();
 };
@@ -34,7 +35,7 @@ class Pattern {
         std::string name;
         int lastItem;
         bool isSExt;
-        std::unordered_map<unsigned int, std::vector<ItemInstance>> siduls;
+        std::unordered_map<unsigned int, std::vector<std::shared_ptr<ItemInstance>>> siduls;
         bool isMaximal;
         bool do_ext;
         bool do_s_ext;

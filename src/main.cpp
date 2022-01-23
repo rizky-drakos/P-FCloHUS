@@ -18,16 +18,16 @@
 class FCloSublist {
     public:
         unsigned int pattern_max_size;
-        std::list<Pattern> cloPatterns;
+        std::list<std::shared_ptr<Pattern>> cloPatterns;
 };
 
 void dfs(
-    Pattern pattern,
-    std::unordered_map<unsigned int, Pattern> I,
-    std::unordered_map<unsigned int, Pattern> S,
+    std::shared_ptr<Pattern> pattern,
+    std::unordered_map<unsigned int, std::shared_ptr<Pattern>> I,
+    std::unordered_map<unsigned int, std::shared_ptr<Pattern>> S,
     float MIN_SUPP,
     float MIN_UTILITY,
-    std::unordered_map<unsigned int, Sequence> sequences,
+    std::unordered_map<unsigned int, std::shared_ptr<Sequence>> sequences,
     std::unordered_map<unsigned int, FCloSublist> &FCHUPatterns,
     float &syncTime
 ) {
@@ -35,7 +35,7 @@ void dfs(
     // "DFS called for " << pattern.name <<
     // ", thread=" << omp_get_thread_num() << std::endl;
     bool do_s_ext = true;
-    if (pattern.umin >= MIN_UTILITY) {
+    if (pattern->umin >= MIN_UTILITY) {
         bool isClosed = true;
         bool isPruned = false;
 
@@ -52,30 +52,30 @@ void dfs(
                 Do this until all closed patterns are considered or we confirm that the new
                 pattern is not closed.
             */
-            if (!(FCHUPatterns[pattern.siduls.size()].pattern_max_size < pattern.size)) {
+            if (!(FCHUPatterns[pattern->siduls.size()].pattern_max_size < pattern->size)) {
                 // std::cout <<
                 // "There are sequences whose size is >= that of the candidate " <<
                 // pattern.name << std::endl;
-                auto it = FCHUPatterns[pattern.siduls.size()].cloPatterns.begin();
-                while (isClosed && (it != FCHUPatterns[pattern.siduls.size()].cloPatterns.end())) {
+                auto it = FCHUPatterns[pattern->siduls.size()].cloPatterns.begin();
+                while (isClosed && (it != FCHUPatterns[pattern->siduls.size()].cloPatterns.end())) {
                     /*
                         (1)
                     */
                     if (
-                        ((*it).size >= pattern.size) &&
-                        ((*it).name.length() >= pattern.name.length())
+                        ((*it)->size >= pattern->size) &&
+                        ((*it)->name.length() >= pattern->name.length())
                     ) {
                         // std::cout <<
                         // omp_get_thread_num() << " Thread, " <<
                         // "Checking (candidate size is >=)" << 
                         // (*it).name << " with " << pattern.name << std::endl;
-                        if (isContainedBy((*it).name, pattern.name)) {
+                        if (isContainedBy((*it)->name, pattern->name)) {
                             // std::cout <<
                             // "Candidate " << pattern.name << " is not closed" << std::endl;
                             isClosed = false;
-                            if ((*it).SE == pattern.SE) {
+                            if ((*it)->SE == pattern->SE) {
                                 do_s_ext = false;
-                                if ((*it).SLIP == pattern.SLIP) isPruned = true;
+                                if ((*it)->SLIP == pattern->SLIP) isPruned = true;
                             }
                         } 
                         /*
@@ -95,10 +95,10 @@ void dfs(
                         // std::cout << 
                         // omp_get_thread_num() << " Thread, " <<
                         // "Checking (candidate size is <)" << (*it).name << " with " << pattern.name << std::endl;
-                        if (isContainedBy(pattern.name, (*it).name)) {
+                        if (isContainedBy(pattern->name, (*it)->name)) {
                             // std::cout <<
                             // "Deleting " << (*it).name << std::endl;
-                            it = FCHUPatterns[pattern.siduls.size()].cloPatterns.erase(it);
+                            it = FCHUPatterns[pattern->siduls.size()].cloPatterns.erase(it);
                         } else {
                             ++it;
                             // std::cout <<
@@ -110,14 +110,14 @@ void dfs(
                     // std::cout <<
                     // omp_get_thread_num() << " Thread, " <<
                     // "Adding " << pattern.name << std::endl;
-                    FCHUPatterns[pattern.siduls.size()].cloPatterns.push_back(pattern);
+                    FCHUPatterns[pattern->siduls.size()].cloPatterns.push_back(pattern);
                     // std::cout <<
                     // "Current list, supp=" << pattern.siduls.size() << ": " << std::endl;
                     // for (auto it : FCHUPatterns[pattern.siduls.size()].cloPatterns)
                     //     std::cout << it.name << std::endl;
-                    FCHUPatterns[pattern.siduls.size()].pattern_max_size = std::max(
-                        FCHUPatterns[pattern.siduls.size()].pattern_max_size,
-                        pattern.size
+                    FCHUPatterns[pattern->siduls.size()].pattern_max_size = std::max(
+                        FCHUPatterns[pattern->siduls.size()].pattern_max_size,
+                        pattern->size
                     );
                 }
             }
@@ -142,57 +142,57 @@ void dfs(
                 //     else it++;
                 // }
 
-                FCHUPatterns[pattern.siduls.size()].cloPatterns.erase(
+                FCHUPatterns[pattern->siduls.size()].cloPatterns.erase(
                     std::remove_if(
-                        FCHUPatterns[pattern.siduls.size()].cloPatterns.begin(),
-                        FCHUPatterns[pattern.siduls.size()].cloPatterns.end(),
-                        [&](const Pattern it) {
+                        FCHUPatterns[pattern->siduls.size()].cloPatterns.begin(),
+                        FCHUPatterns[pattern->siduls.size()].cloPatterns.end(),
+                        [&](const std::shared_ptr<Pattern> it) {
                             // bool rs = it.siduls.size() == pattern.siduls.size() &&
                             // isContainedBy(pattern.name, it.name);
                             // std::cout << 
                             // omp_get_thread_num() << " Thread, " <<
                             // "Checking (candidate size is >=)" 
                             // << it.name << " with " << pattern.name << std::endl;
-                            return it.siduls.size() == pattern.siduls.size() &&
-                            isContainedBy(pattern.name, it.name);
+                            return it->siduls.size() == pattern->siduls.size() &&
+                            isContainedBy(pattern->name, it->name);
                         }
                     ),
-                    FCHUPatterns[pattern.siduls.size()].cloPatterns.end()
+                    FCHUPatterns[pattern->siduls.size()].cloPatterns.end()
                 );
 
                 // std::cout <<
                 // omp_get_thread_num() << " Thread, " <<
                 // "Adding " << pattern.name << std::endl;
-                FCHUPatterns[pattern.siduls.size()].cloPatterns.push_back(pattern);
+                FCHUPatterns[pattern->siduls.size()].cloPatterns.push_back(pattern);
                 // std::cout <<
                 // "Current list, supp=" << pattern.siduls.size() << ": " << std::endl;
                 // for (auto it : FCHUPatterns[pattern.siduls.size()].cloPatterns)
                 //     std::cout << it.name << std::endl;
-                FCHUPatterns[pattern.siduls.size()].pattern_max_size = pattern.size;
+                FCHUPatterns[pattern->siduls.size()].pattern_max_size = pattern->size;
             }
 
             ftime = omp_get_wtime();
             syncTime += (ftime - itime);
-            // std::cout << "End synchonizing thread=" << omp_get_thread_num() << ", " << pattern.name << std::endl;
+            // std::cout << "End synchonizing thread=" << omp_get_thread_num() << ", " << pattern->name << std::endl;
         }
 
         if (isPruned) return;
     }
-    if (pattern.RBU < MIN_UTILITY) return;
-    std::unordered_map<unsigned int, Pattern> newI, newS, newIList;
+    if (pattern->RBU < MIN_UTILITY) return;
+    std::unordered_map<unsigned int, std::shared_ptr<Pattern>> newI, newS, newIList;
     for (auto item : I) {
-        if (item.first > pattern.lastItem) {
+        if (item.first > pattern->lastItem) {
             float extensionLRU = 0;
             unsigned int extensionSupp = 0;
             std::unordered_set<int> commonSeqs;
-            for (auto seq : item.second.siduls) commonSeqs.insert(seq.first);
-            for (auto seq : pattern.siduls) {
+            for (auto seq : item.second->siduls) commonSeqs.insert(seq.first);
+            for (auto seq : pattern->siduls) {
                 if (commonSeqs.find(seq.first) != commonSeqs.end()) {
                     std::unordered_set<int> commonPoss;
-                    for (auto instance : item.second.siduls[seq.first]) commonPoss.insert(instance.position);
-                    for (auto instance : pattern.siduls[seq.first]) {
-                        if (commonPoss.find(instance.position) != commonPoss.end()) {
-                            extensionLRU += (pattern.siduls[seq.first][0].utility + pattern.siduls[seq.first][0].rem);
+                    for (auto instance : item.second->siduls[seq.first]) commonPoss.insert(instance->position);
+                    for (auto instance : pattern->siduls[seq.first]) {
+                        if (commonPoss.find(instance->position) != commonPoss.end()) {
+                            extensionLRU += (pattern->siduls[seq.first][0]->utility + pattern->siduls[seq.first][0]->rem);
                             ++extensionSupp;
                             break;
                         }
@@ -202,9 +202,9 @@ void dfs(
             // if (extensionLRU >= MIN_UTILITY && extensionSupp >= MIN_SUPP) newI[item.first] = item.second;
             if (extensionLRU >= MIN_UTILITY && extensionSupp >= MIN_SUPP) {
                 newI[item.first] = item.second;
-                Pattern extendedPattern = construct_i_ext(pattern, item.second, sequences);
+                std::shared_ptr<Pattern> extendedPattern = construct_i_ext(pattern, item.second, sequences);
                 newIList[item.first] = extendedPattern;
-                if (extendedPattern.SE == pattern.SE) do_s_ext = false;                
+                if (extendedPattern->SE == pattern->SE) do_s_ext = false;                
             }
         }
     }
@@ -218,11 +218,11 @@ void dfs(
             float extensionLRU = 0;
             unsigned int extensionSupp = 0;
             std::unordered_set<int> commonSeqs;
-            for (auto seq : item.second.siduls) commonSeqs.insert(seq.first);
-            for (auto seq : pattern.siduls) {
+            for (auto seq : item.second->siduls) commonSeqs.insert(seq.first);
+            for (auto seq : pattern->siduls) {
                 if (commonSeqs.find(seq.first) != commonSeqs.end()) {
-                    if (item.second.siduls[seq.first].back().position > pattern.siduls[seq.first].front().position) {
-                        extensionLRU += (pattern.siduls[seq.first][0].utility + pattern.siduls[seq.first][0].rem);
+                    if (item.second->siduls[seq.first].back()->position > pattern->siduls[seq.first].front()->position) {
+                        extensionLRU += (pattern->siduls[seq.first][0]->utility + pattern->siduls[seq.first][0]->rem);
                         extensionSupp += 1;
                     }
                 }
@@ -230,7 +230,7 @@ void dfs(
             if (extensionLRU >= MIN_UTILITY && extensionSupp >= MIN_SUPP) newS[item.first] = item.second;
         }
         for (auto item : newS) {
-            Pattern extendedPattern = construct_s_ext(pattern, item.second, sequences);
+            std::shared_ptr<Pattern> extendedPattern = construct_s_ext(pattern, item.second, sequences);
             #pragma omp task untied shared(syncTime, newS, sequences, FCHUPatterns) firstprivate(extendedPattern)
             {
                 dfs(extendedPattern, newS, newS, MIN_SUPP, MIN_UTILITY, sequences, FCHUPatterns, syncTime);
@@ -251,15 +251,15 @@ int main(int argvc, char** argv) {
     const float MIN_UTILITY = std::stof(argv[2]);
     const std::string INPUT_DATA_PATH = argv[3];
 
-    std::unordered_map<unsigned int, Sequence> sequences = readInputData(INPUT_DATA_PATH);
+    std::unordered_map<unsigned int, std::shared_ptr<Sequence>> sequences = readInputData(INPUT_DATA_PATH);
     /*
         Scan the database to compute all SIDULs for all items
     */
-    std::unordered_map<unsigned int, Pattern> sidulItems = construct_siduls(sequences);
+    std::unordered_map<unsigned int, std::shared_ptr<Pattern>> sidulItems = construct_siduls(sequences);
     /*
         Remove items whose supp < MIN_SUPP || LRU < MIN_UTILITY
     */
-    std::unordered_map<unsigned int, Sequence> updatedSequences = WPS_by_LRU_and_Support(sequences, sidulItems, MIN_SUPP, MIN_UTILITY);
+    std::unordered_map<unsigned int, std::shared_ptr<Sequence>> updatedSequences = WPS_by_LRU_and_Support(sequences, sidulItems, MIN_SUPP, MIN_UTILITY);
     /*
         Re-construct the siduls with the recently updated sequences
     */
@@ -271,7 +271,7 @@ int main(int argvc, char** argv) {
 
     float synTime = 0;
 
-    // omp_set_num_threads(4);
+    // omp_set_num_threads(2);
 
     #pragma omp parallel default(none) shared(synTime, sidulItems, FCHUPatterns, updatedSequences)
     {

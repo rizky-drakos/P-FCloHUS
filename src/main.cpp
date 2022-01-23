@@ -271,7 +271,7 @@ int main(int argvc, char** argv) {
 
     float synTime = 0;
 
-    omp_set_num_threads(4);
+    // omp_set_num_threads(4);
 
     #pragma omp parallel default(none) shared(synTime, sidulItems, FCHUPatterns, updatedSequences)
     {

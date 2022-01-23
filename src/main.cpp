@@ -28,7 +28,8 @@ void dfs(
     float MIN_SUPP,
     float MIN_UTILITY,
     std::unordered_map<unsigned int, Sequence> sequences,
-    std::unordered_map<unsigned int, FCloSublist> &FCHUPatterns
+    std::unordered_map<unsigned int, FCloSublist> &FCHUPatterns,
+    float &syncTime
 ) {
     // std::cout <<
     // "DFS called for " << pattern.name <<
@@ -37,8 +38,13 @@ void dfs(
     if (pattern.umin >= MIN_UTILITY) {
         bool isClosed = true;
         bool isPruned = false;
+
+        double itime, ftime, exec_time;
+        
         #pragma omp critical
         {
+            itime = omp_get_wtime();
+            // std::cout << "Start synchonizing thread=" << omp_get_thread_num() << ", " << pattern.name << std::endl;
             /*
                 Since the pattern_max_size >= the size of the current candidate, there exists both
                 closed patterns whose size is either (1) >= or (2) < the size of the candidate.
@@ -125,15 +131,35 @@ void dfs(
                 // std::cout <<
                 // "No sequence whose size is >= that of the candidate " <<
                 // pattern.name << std::endl;
-                auto it = FCHUPatterns[pattern.siduls.size()].cloPatterns.begin();
-                while (it != FCHUPatterns[pattern.siduls.size()].cloPatterns.end()) {
-                    // std::cout << 
-                    // omp_get_thread_num() << " Thread, " <<
-                    // "Checking (candidate size is >=)" 
-                    // << (*it).name << " with " << pattern.name << std::endl;
-                    if (isContainedBy(pattern.name, (*it).name)) 
-                        it = FCHUPatterns[pattern.siduls.size()].cloPatterns.erase(it);
-                }
+                // auto it = FCHUPatterns[pattern.siduls.size()].cloPatterns.begin();
+                // while (it != FCHUPatterns[pattern.siduls.size()].cloPatterns.end()) {
+                //     std::cout << 
+                //     omp_get_thread_num() << " Thread, " <<
+                //     "Checking (candidate size is >=)" 
+                //     << (*it).name << " with " << pattern.name << std::endl;
+                //     if (isContainedBy(pattern.name, (*it).name)) 
+                //         it = FCHUPatterns[pattern.siduls.size()].cloPatterns.erase(it);
+                //     else it++;
+                // }
+
+                FCHUPatterns[pattern.siduls.size()].cloPatterns.erase(
+                    std::remove_if(
+                        FCHUPatterns[pattern.siduls.size()].cloPatterns.begin(),
+                        FCHUPatterns[pattern.siduls.size()].cloPatterns.end(),
+                        [&](const Pattern it) {
+                            // bool rs = it.siduls.size() == pattern.siduls.size() &&
+                            // isContainedBy(pattern.name, it.name);
+                            // std::cout << 
+                            // omp_get_thread_num() << " Thread, " <<
+                            // "Checking (candidate size is >=)" 
+                            // << it.name << " with " << pattern.name << std::endl;
+                            return it.siduls.size() == pattern.siduls.size() &&
+                            isContainedBy(pattern.name, it.name);
+                        }
+                    ),
+                    FCHUPatterns[pattern.siduls.size()].cloPatterns.end()
+                );
+
                 // std::cout <<
                 // omp_get_thread_num() << " Thread, " <<
                 // "Adding " << pattern.name << std::endl;
@@ -144,7 +170,12 @@ void dfs(
                 //     std::cout << it.name << std::endl;
                 FCHUPatterns[pattern.siduls.size()].pattern_max_size = pattern.size;
             }
+
+            ftime = omp_get_wtime();
+            syncTime += (ftime - itime);
+            // std::cout << "End synchonizing thread=" << omp_get_thread_num() << ", " << pattern.name << std::endl;
         }
+
         if (isPruned) return;
     }
     if (pattern.RBU < MIN_UTILITY) return;
@@ -200,17 +231,17 @@ void dfs(
         }
         for (auto item : newS) {
             Pattern extendedPattern = construct_s_ext(pattern, item.second, sequences);
-            #pragma omp task untied shared(newS, sequences, FCHUPatterns) firstprivate(extendedPattern)
+            #pragma omp task untied shared(syncTime, newS, sequences, FCHUPatterns) firstprivate(extendedPattern)
             {
-                dfs(extendedPattern, newS, newS, MIN_SUPP, MIN_UTILITY, sequences, FCHUPatterns);
+                dfs(extendedPattern, newS, newS, MIN_SUPP, MIN_UTILITY, sequences, FCHUPatterns, syncTime);
             }
         // #pragma omp taskwait
         }
     } else newS = S;
     for (auto extendedPattern : newIList) 
-        #pragma omp task untied shared(newI, newS, sequences, FCHUPatterns) firstprivate(extendedPattern)
+        #pragma omp task untied shared(syncTime, newI, newS, sequences, FCHUPatterns) firstprivate(extendedPattern)
         {
-            dfs(extendedPattern.second, newI, newS, MIN_SUPP, MIN_UTILITY, sequences, FCHUPatterns);
+            dfs(extendedPattern.second, newI, newS, MIN_SUPP, MIN_UTILITY, sequences, FCHUPatterns, syncTime);
         }
     #pragma omp taskwait
 }
@@ -238,14 +269,18 @@ int main(int argvc, char** argv) {
 
     std::cout << "# items: " << sidulItems.size() << ", # sequences: " << updatedSequences.size() << std::endl;
 
-    #pragma omp parallel default(none) shared(sidulItems, FCHUPatterns, updatedSequences)
+    float synTime = 0;
+
+    omp_set_num_threads(4);
+
+    #pragma omp parallel default(none) shared(synTime, sidulItems, FCHUPatterns, updatedSequences)
     {
         #pragma omp single
         {
             for (auto pattern : sidulItems)
-                #pragma omp task untied default(none) shared(FCHUPatterns, sidulItems, updatedSequences) firstprivate(pattern)
+                #pragma omp task untied default(none) shared(synTime, FCHUPatterns, sidulItems, updatedSequences) firstprivate(pattern)
                 {
-                    dfs(pattern.second, sidulItems, sidulItems, MIN_SUPP, MIN_UTILITY, updatedSequences, FCHUPatterns);
+                    dfs(pattern.second, sidulItems, sidulItems, MIN_SUPP, MIN_UTILITY, updatedSequences, FCHUPatterns, synTime);
                 }
             #pragma omp taskwait
         }
@@ -261,6 +296,8 @@ int main(int argvc, char** argv) {
         //     std::endl;
     }
     std::cout << "Total: " << numOfPattern << std::endl;
+
+    std::cout << "SynTime: " << synTime << std::endl;
     
     return 0;
 }

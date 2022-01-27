@@ -172,7 +172,8 @@ std::shared_ptr<Pattern> construct_i_ext(
     extendedPattern->lastItem = item->lastItem;
     extendedPattern->parentLastItem = pattern->lastItem;
     extendedPattern->isParentSExt = pattern->isSExt;
-    extendedPattern->name = pattern->name.append(" ").append(item->name);
+    extendedPattern->name = pattern->name;
+    extendedPattern->name.append(" ").append(item->name);
     extendedPattern->size = pattern->size;
 
     std::unordered_set<unsigned int> commonSeqs;
@@ -218,7 +219,8 @@ std::shared_ptr<Pattern> construct_s_ext(
     extendedPattern->lastItem = item->lastItem;
     extendedPattern->isParentSExt = pattern->isSExt;
     extendedPattern->parentLastItem = pattern->lastItem;
-    extendedPattern->name = pattern->name.append(" -1 ").append(item->name);
+    extendedPattern->name = pattern->name;
+    extendedPattern->name.append(" -1 ").append(item->name);
     extendedPattern->size = pattern->size + 1;
 
     std::unordered_set<unsigned int> commonSeqs;

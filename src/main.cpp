@@ -290,9 +290,9 @@ int main(int argvc, char** argv) {
     for (auto it : FCHUPatterns) {
         numOfPattern += it.second.cloPatterns.size();
         // for (auto ii : it.second.cloPatterns)
-        //     std::cout << ii.name << 
-        //     ", supp=" << ii.siduls.size() << 
-        //     ", size=" << ii.size <<
+        //     std::cout << ii->name << 
+        //     ", supp=" << ii->siduls.size() << 
+        //     ", size=" << ii->size <<
         //     std::endl;
     }
     std::cout << "Total: " << numOfPattern << std::endl;

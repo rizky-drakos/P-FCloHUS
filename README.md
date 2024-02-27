@@ -12,9 +12,13 @@ First, build the code and containerise it with Docker:
 
 Once completed, the mining process can be demonstrated with a minimum support (MIN_SUPP) and minimum utility (MIN_UTIL) by executing the following commands:
 
+    # Set values for minimum support and minimum utility.
     $ MIN_SUPP=3
     $ MIN_UTIL=60
+
+    # Kick off the mining process.
     $ docker run -v $(pwd)/samples:/data/samples --rm pfclohus ${MIN_SUPP} ${MIN_UTIL} /data/samples
+
     # items: 4, # sequences: 4
     2 3 -1 1 2, supp=3, utility=73
     1 -1 2 -1 1 2, supp=3, utility=92

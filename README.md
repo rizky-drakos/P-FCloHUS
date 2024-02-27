@@ -1,4 +1,4 @@
-**P-FCloHUS** is a data mining algorithm for extracting <em>frequent-closed high utility sequential patterns</em> from a transactional dataset in parallel on multicore processors.
+**P-FCloHUS** is a data mining algorithm for extracting <em>frequent-closed high utility sequential patterns</em> from a transactional dataset in parallel on a multicore processor.
 
 <h1>Quick start</h1>
 
@@ -25,4 +25,4 @@ Once completed, the mining process can be demonstrated with a minimum support (M
     4 -1 1 2, supp=3, utility=64
     Total: 3
 
-By default, the P-FCloHUS runs in parallel with using all cores on the machine. You can further restrict this behaviour with the `--cpus` option from Docker.
+By default, the P-FCloHUS runs in parallel using all cores on the machine. You can further restrict this behaviour with the `--cpus` option from Docker.

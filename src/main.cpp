@@ -273,12 +273,12 @@ int main(int argvc, char** argv) {
 
     // omp_set_num_threads(2);
 
-    #pragma omp parallel default(none) shared(synTime, sidulItems, FCHUPatterns, updatedSequences)
+    #pragma omp parallel default(none) shared(synTime, sidulItems, FCHUPatterns, updatedSequences, MIN_SUPP, MIN_UTILITY)
     {
         #pragma omp single
         {
             for (auto pattern : sidulItems)
-                #pragma omp task untied default(none) shared(synTime, FCHUPatterns, sidulItems, updatedSequences) firstprivate(pattern)
+                #pragma omp task untied default(none) shared(synTime, FCHUPatterns, sidulItems, updatedSequences, MIN_SUPP, MIN_UTILITY) firstprivate(pattern)
                 {
                     dfs(pattern.second, sidulItems, sidulItems, MIN_SUPP, MIN_UTILITY, updatedSequences, FCHUPatterns, synTime);
                 }
@@ -289,15 +289,15 @@ int main(int argvc, char** argv) {
     int numOfPattern = 0;
     for (auto it : FCHUPatterns) {
         numOfPattern += it.second.cloPatterns.size();
-        // for (auto ii : it.second.cloPatterns)
-        //     std::cout << ii->name << 
-        //     ", supp=" << ii->siduls.size() << 
-        //     ", size=" << ii->size <<
-        //     std::endl;
+        for (auto ii : it.second.cloPatterns)
+            std::cout << ii->name << 
+            ", supp=" << ii->siduls.size() << 
+            ", utility=" << ii->umin <<
+            std::endl;
     }
     std::cout << "Total: " << numOfPattern << std::endl;
 
-    std::cout << "SynTime: " << synTime << std::endl;
+    // std::cout << "SynTime: " << synTime << std::endl;
     
     return 0;
 }

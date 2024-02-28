@@ -2,7 +2,7 @@
 
 <h1>Quick start</h1>
 
-Given a sample transactional dataset with 4 transactions built from a set of items of 4 including `a`, `b` `c` and `d` and their corresponding utilities in the second table shown as below: 
+Given a sample transactional dataset with 4 transactions built from a set of items of 4 including `a (or 1)`, `b (or 2)` `c (or 3)` and `d (or 4)` and their corresponding utilities in the second table shown as below: 
 
 ![](samples.png)
 

@@ -1,4 +1,4 @@
-**P-FCloHUS** is a data mining algorithm for extracting <em>frequent-closed high utility sequential patterns</em> from a transactional dataset in parallel on a multicore processor.
+[**P-FCloHUS**](https://doi.org/10.1007/978-981-19-8234-7_31) is a data mining algorithm for extracting <em>frequent-closed high utility sequential patterns</em> from a transactional dataset in parallel on a multicore processor.
 
 <h1>Quick start</h1>
 
